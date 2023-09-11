@@ -258,7 +258,7 @@ fn on_packet_acked(
         if r.bytes_acked_sl >= r.max_datagram_size {
             if r.hystart.in_css(epoch) {
                 r.congestion_window +=
-                    r.hystart.css_cwnd_inc(r.max_datagram_size);
+                    r.hystart.css_cwnd_inc(r.bytes_acked_sl, r.max_datagram_size, r.pacer.enabled());
             } else {
                 r.congestion_window += r.max_datagram_size;
             }

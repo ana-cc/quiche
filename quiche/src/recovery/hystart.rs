@@ -48,6 +48,15 @@ pub const CSS_GROWTH_DIVISOR: usize = 4;
 
 pub const CSS_ROUNDS: usize = 5;
 
+// MIN_RTT_DIVISOR is a fraction of RTT to compute delay threshold.
+// A smaller value would mean a bigger threshold and thus less sensitive to delay increase, and vice versa.
+pub const MIN_RTT_DIVISOR: u32 = 8;
+
+pub const L_NONPACED: usize = 8;
+
+pub const L_PACED: usize = usize :: MAX;
+
+
 #[derive(Default)]
 pub struct Hystart {
     enabled: bool,
@@ -148,7 +157,7 @@ impl Hystart {
                 // clamp(min_rtt_thresh, last_round_min_rtt/8,
                 // max_rtt_thresh)
                 let rtt_thresh =
-                    cmp::max(self.last_round_min_rtt / 8, MIN_RTT_THRESH);
+                    cmp::max(self.last_round_min_rtt / MIN_RTT_DIVISOR, MIN_RTT_THRESH);
                 let rtt_thresh = cmp::min(rtt_thresh, MAX_RTT_THRESH);
 
                 // Check if we can exit to CSS.
@@ -196,8 +205,10 @@ impl Hystart {
     }
 
     // Return a cwnd increment during CSS (Conservative Slow Start).
-    pub fn css_cwnd_inc(&self, pkt_size: usize) -> usize {
-        pkt_size / CSS_GROWTH_DIVISOR
+
+    pub fn css_cwnd_inc(&self, bytes_acked: usize, smss_size: usize, pacing: bool) -> usize {
+        if pacing {bytes_acked/ CSS_GROWTH_DIVISOR }
+        else {std::cmp::min(bytes_acked, smss_size*L_NONPACED)/ CSS_GROWTH_DIVISOR }
     }
 
     // Exit HyStart++ when entering congestion avoidance.
@@ -223,13 +234,27 @@ mod tests {
     }
 
     #[test]
-    fn css_cwnd_inc() {
+    fn css_cwnd_inc_paced() {
         let hspp = Hystart::default();
         let datagram_size = 1200;
+        let smss_size = 1350;
+        let pacing = true;
 
-        let css_cwnd_inc = hspp.css_cwnd_inc(datagram_size);
+        let css_cwnd_inc = hspp.css_cwnd_inc(datagram_size, smss_size, pacing);
 
         assert_eq!(datagram_size / CSS_GROWTH_DIVISOR, css_cwnd_inc);
+    }
+
+    #[test]
+    fn css_cwnd_inc_nonpaced() {
+        let hspp = Hystart::default();
+        let datagram_size = 9800;
+        let smss_size = 1200; // 1200 * 8 = 9600
+        let pacing = false;
+
+        let css_cwnd_inc = hspp.css_cwnd_inc(datagram_size, smss_size, pacing);
+
+        assert_eq!(9600 / CSS_GROWTH_DIVISOR, css_cwnd_inc);
     }
 
     #[test]
@@ -241,7 +266,7 @@ mod tests {
 
         assert_eq!(hspp.window_end, Some(pkt_num));
 
-        // When moving into CA mode, window_end should be cleared.
+
         hspp.congestion_event();
 
         assert_eq!(hspp.window_end, None);
