@@ -41,6 +41,7 @@ use crate::minmax;
 use crate::packet;
 use crate::ranges;
 
+
 #[cfg(feature = "qlog")]
 use qlog::events::EventData;
 
@@ -153,6 +154,9 @@ pub struct Recovery {
     // RFC6937 PRR.
     prr: prr::PRR,
 
+    //Careful resume
+    resume: resume::Resume,
+
     #[cfg(feature = "qlog")]
     qlog_metrics: QlogMetrics,
 
@@ -179,6 +183,7 @@ pub struct RecoveryConfig {
     cc_ops: &'static CongestionControlOps,
     hystart: bool,
     pacing: bool,
+    resume: bool,
     max_pacing_rate: Option<u64>,
     initial_congestion_window_packets: usize,
 }
@@ -191,6 +196,7 @@ impl RecoveryConfig {
             cc_ops: config.cc_algorithm.into(),
             hystart: config.hystart,
             pacing: config.pacing,
+            resume: config.resume,
             max_pacing_rate: config.max_pacing_rate,
             initial_congestion_window_packets: config
                 .initial_congestion_window_packets,
@@ -286,6 +292,8 @@ impl Recovery {
             ),
 
             prr: prr::PRR::default(),
+
+            resume: resume::Resume::new(recovery_config.resume),
 
             send_quantum: initial_congestion_window,
 
@@ -1234,6 +1242,9 @@ impl std::fmt::Debug for Recovery {
             write!(f, "hystart={:?} ", self.hystart)?;
         }
 
+        if self.resume.enabled() {
+            write!(f, "resume={:?} ", self.resume)?;
+        }
         // CC-specific debug info
         (self.cc_ops.debug_fmt)(self, f)?;
 
@@ -2269,6 +2280,7 @@ mod bbr2;
 mod cubic;
 mod delivery_rate;
 mod hystart;
+mod resume;
 mod pacer;
 mod prr;
 mod reno;

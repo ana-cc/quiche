@@ -58,6 +58,12 @@ pub fn reset(_r: &mut Recovery) {}
 
 pub fn on_packet_sent(r: &mut Recovery, sent_bytes: usize, _now: Instant) {
     r.bytes_in_flight += sent_bytes;
+    if r.resume.enabled() {
+       //this increases the congestion window by jump window
+       r.congestion_window += r.resume.send_packet(r.bytes_in_flight, r.congestion_window);
+       // this sets the cr mark to largest sent pn sent
+       r.resume.set_cr_mark(r.largest_sent_pkt[0]);
+       }
 }
 
 fn on_packets_acked(
@@ -86,6 +92,11 @@ fn on_packet_acked(
         // In Slow slart, bytes_acked_sl is used for counting
         // acknowledged bytes.
         r.bytes_acked_sl += packet.size;
+
+        if r.resume.enabled() {
+            r.congestion_window += r.resume.process_ack(r.latest_rtt, r.congestion_window, packet);
+            r.resume.set_cr_mark(r.largest_sent_pkt[0]);
+            }
 
         if r.hystart.in_css(epoch) {
             r.congestion_window += r.hystart.css_cwnd_inc(r.bytes_acked_sl, r.max_datagram_size, r.pacer.enabled() );
@@ -147,6 +158,10 @@ pub fn collapse_cwnd(r: &mut Recovery) {
     if r.hystart.enabled() {
         r.hystart.reset();
     }
+    if r.resume.enabled() {
+        r.resume.reset();
+    }
+
 }
 
 fn checkpoint(_r: &mut Recovery) {}
