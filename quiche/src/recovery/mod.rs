@@ -319,6 +319,7 @@ impl Recovery {
         self.ssthresh = usize::MAX;
         (self.cc_ops.reset)(self);
         self.hystart.reset();
+        self.resume.reset();
         self.prr = prr::PRR::default();
     }
 
@@ -364,6 +365,13 @@ impl Recovery {
             self.prr.on_packet_sent(sent_bytes);
 
             self.set_loss_detection_timer(handshake_status, now);
+        }
+
+        if self.resume.enabled() {
+            //this increases the congestion window by jump window
+            self.congestion_window += self.resume.send_packet(self.bytes_in_flight, self.congestion_window);
+            // this sets the cr mark to largest sent pn sent
+            self.resume.set_cr_mark(self.largest_sent_pkt[0]);
         }
 
         // HyStart++: Start of the round in a slow start.
