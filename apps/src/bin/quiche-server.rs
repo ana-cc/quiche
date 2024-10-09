@@ -185,9 +185,9 @@ fn main() {
         //
         // TODO: use event loop that properly supports timers
         let timeout = match continue_write {
-            true => Some(std::time::Duration::from_secs(0)),
+            true => Some(std::time::Duration::from_millis(10)),
 
-            false => clients.values().filter_map(|c| c.conn.timeout()).min(),
+            false => Some(std::time::Duration::from_millis(10)),//clients.values().filter_map(|c| c.conn.timeout()).min(),
         };
 
         let mut poll_res = poll.poll(&mut events, timeout);
@@ -542,6 +542,16 @@ fn main() {
         // packets to be sent.
         continue_write = false;
         for client in clients.values_mut() {
+            if client.http_conn.is_some() {
+                let conn = &mut client.conn;
+                let http_conn = client.http_conn.as_mut().unwrap();
+                let partial_responses = &mut client.partial_responses;
+
+                // Handle writable streams.
+                for stream_id in conn.writable() {
+                    http_conn.handle_writable(conn, partial_responses, stream_id);
+                }
+            }
             // Reduce max_send_burst by 25% if loss is increasing more than 0.1%.
             let loss_rate =
                 client.conn.stats().lost as f64 / client.conn.stats().sent as f64;
