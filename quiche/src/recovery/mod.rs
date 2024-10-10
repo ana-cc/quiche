@@ -503,13 +503,13 @@ impl Recovery {
 
 
         let bytes_acked = self.congestion.resume.total_acked;
-        let iw_acked = bytes_acked >= self.congestion.initial_window;
+        let twice_iw_acked = bytes_acked >= 2* self.congestion.initial_window;
 
         if self.congestion.resume.enabled() && epoch == packet::Epoch::Application {
             let largest_sent_pkt = self.epochs[epoch].sent_packets.iter().map(|p| p.pkt_num).max().unwrap_or_default();
             // Increase the congestion window by a jump determined by careful resume
-            self.congestion.congestion_window += self.congestion.resume.send_packet(
-                self.rtt_stats.smoothed_rtt, self.congestion.congestion_window, largest_sent_pkt, self.congestion.app_limited, iw_acked
+            self.congestion.congestion_window -= self.congestion.resume.send_packet(
+                self.rtt_stats.smoothed_rtt, self.bytes_in_flight, largest_sent_pkt,  twice_iw_acked
             );
         }
 
@@ -538,7 +538,8 @@ impl Recovery {
         trace_id: &str,
     ) -> Result<(usize, usize, usize)> {
         let largest_acked = ranges.last().unwrap();
-
+        let bytes_acked = self.congestion.resume.total_acked;
+        let half_iw_acked = bytes_acked >= self.congestion.initial_window/2;
         // Update the largest acked packet.
         let largest_acked = self.epochs[epoch]
             .largest_acked_packet
@@ -598,7 +599,7 @@ impl Recovery {
             for packet in self.newly_acked.iter() {
                 let largest_sent_pkt = self.epochs[epoch].sent_packets.iter().map(|p| p.pkt_num).max().unwrap_or_default();
                 let (new_cwnd, new_ssthresh) = self.congestion.resume.process_ack(
-                    largest_sent_pkt, packet, self.bytes_in_flight
+                    largest_sent_pkt, packet, self.bytes_in_flight, self.rtt_stats.smoothed_rtt, self.congestion.congestion_window, half_iw_acked
                 );
                 if let Some(new_cwnd) = new_cwnd {
                     self.congestion.congestion_window = new_cwnd;
