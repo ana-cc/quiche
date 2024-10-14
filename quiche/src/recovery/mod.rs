@@ -539,7 +539,9 @@ impl Recovery {
     ) -> Result<(usize, usize, usize)> {
         let largest_acked = ranges.last().unwrap();
         let bytes_acked = self.congestion.resume.total_acked;
-        let half_iw_acked = bytes_acked >= self.congestion.initial_window/2;
+       // let half_iw_acked = bytes_acked >= self.congestion.initial_window/2;
+        let iw_acked = bytes_acked >= self.congestion.initial_window;
+
         // Update the largest acked packet.
         let largest_acked = self.epochs[epoch]
             .largest_acked_packet
@@ -599,7 +601,7 @@ impl Recovery {
             for packet in self.newly_acked.iter() {
                 let largest_sent_pkt = self.epochs[epoch].sent_packets.iter().map(|p| p.pkt_num).max().unwrap_or_default();
                 let (new_cwnd, new_ssthresh) = self.congestion.resume.process_ack(
-                    largest_sent_pkt, packet, self.bytes_in_flight, self.rtt_stats.smoothed_rtt, self.congestion.congestion_window, half_iw_acked
+                    largest_sent_pkt, packet, self.bytes_in_flight, self.rtt_stats.smoothed_rtt, self.congestion.congestion_window, iw_acked
                 );
                 if let Some(new_cwnd) = new_cwnd {
                     self.congestion.congestion_window = new_cwnd;
