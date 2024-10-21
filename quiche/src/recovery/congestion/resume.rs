@@ -209,32 +209,32 @@ impl Resume {
     }
 
     pub fn send_packet(
-        &mut self, rtt_sample: Option<Duration>, flightsize: usize, largest_pkt_sent: u64, twice_iw_acked: bool
+        &mut self, flightsize: usize, largest_pkt_sent: u64, twice_iw_sent: bool
     ) -> usize {
-        if !twice_iw_acked {   //this needs to be 2*IW conditions stay here but for triggering the move to Unvalidated
+        if !twice_iw_sent {   //this needs to be 2*IW conditions stay here but for triggering the move to Unvalidated
             return 0;
         }
-        match self.cr_state {
-            CrState::Reconnaissance => {
-                let current_rtt = match rtt_sample { //condition can duplicate for the jump AND triggering the move to Unvalidated
-                    Some(s) => s,
-                    None => {
+       // match self.cr_state {
+       //     CrState::Reconnaissance => {
+        //        let current_rtt = match rtt_sample { //condition can duplicate for the jump AND triggering the move to Unvalidated
+         //           Some(s) => s,
+          //          None => {
                         // Don't make any decisions until we have an RTT sample
-                        return 0;
-                    }
-                };
+          //              return 0;
+          //          }
+           //     };
 
                 // Confirm RTT is similar to that of the previous connection
                 //condition can duplicate for the jump AND triggering the move to Unvalidated
-                if current_rtt <= self.previous_rtt / 2 || current_rtt >= self.previous_rtt * 10 {
-                    trace!(
-                    "{} current RTT too divergent from previous RTT - not using careful resume; \
-                    rtt_sample={:?} previous_rtt={:?}",
-                    self.trace_id, current_rtt, self.previous_rtt
-                );
-                    self.change_state(CrState::Normal, CarefulResumeTrigger::RttNotValidated);
-                    return self.previous_cwnd / 2 - 3 * 13500;
-                }
+               //  if current_rtt <= self.previous_rtt / 2 || current_rtt >= self.previous_rtt * 10 {
+               //      trace!(
+               //      "{} current RTT too divergent from previous RTT - not using careful resume; \
+               //     rtt_sample={:?} previous_rtt={:?}",
+               //     self.trace_id, current_rtt, self.previous_rtt
+               // );
+               //     self.change_state(CrState::Normal, CarefulResumeTrigger::RttNotValidated);
+               //     return (self.previous_cwnd / 2) - 2 * 13500;
+                // }
 
                 // Store the first packet number that was sent in the Unvalidated Phase
                 trace!("{} entering careful resume unvalidated phase", self.trace_id);

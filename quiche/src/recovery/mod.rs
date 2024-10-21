@@ -502,14 +502,14 @@ impl Recovery {
         );
 
 
-        let bytes_acked = self.congestion.resume.total_acked;
-        let twice_iw_acked = bytes_acked >= 2* self.congestion.initial_window;
+        let bytes_sent = self.bytes_sent;
+        let twice_iw_sent = bytes_sent >= 2 * self.congestion.initial_window;
 
         if self.congestion.resume.enabled() && epoch == packet::Epoch::Application {
             let largest_sent_pkt = self.epochs[epoch].sent_packets.iter().map(|p| p.pkt_num).max().unwrap_or_default();
             // Increase the congestion window by a jump determined by careful resume
             self.congestion.congestion_window -= self.congestion.resume.send_packet(
-                self.rtt_stats.smoothed_rtt, self.bytes_in_flight, largest_sent_pkt,  twice_iw_acked
+                 self.bytes_in_flight, largest_sent_pkt,  twice_iw_sent
             );
         }
 
