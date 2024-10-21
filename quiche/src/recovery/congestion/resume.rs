@@ -241,9 +241,6 @@ impl Resume {
                 self.change_state(CrState::Unvalidated(largest_pkt_sent), CarefulResumeTrigger::CwndLimited);
                 self.pipesize = flightsize; // this is now FLIGHTSIZE
                 return 0; //don't return the jump
-            }
-            _ => return 0
-        }
     }
 
 
