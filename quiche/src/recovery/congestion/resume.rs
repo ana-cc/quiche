@@ -214,8 +214,8 @@ impl Resume {
         if !twice_iw_sent {   //this needs to be 2*IW conditions stay here but for triggering the move to Unvalidated
             return 0;
         }
-       // match self.cr_state {
-       //     CrState::Reconnaissance => {
+        match self.cr_state {
+            CrState::Reconnaissance => {
         //        let current_rtt = match rtt_sample { //condition can duplicate for the jump AND triggering the move to Unvalidated
          //           Some(s) => s,
           //          None => {
@@ -241,6 +241,9 @@ impl Resume {
                 self.change_state(CrState::Unvalidated(largest_pkt_sent), CarefulResumeTrigger::CwndLimited);
                 self.pipesize = flightsize; // this is now FLIGHTSIZE
                 return 0; //don't return the jump
+            }
+            _ => return 0
+        }
     }
 
 
