@@ -43,13 +43,24 @@ pub enum CarefulResumeTrigger {
     /// The sender enters the Normal Phase when an ACK is received for the last
     /// packet number (or higher) that was sent in the Unvalidated Phase.
     LastUnvalidatedPacketAcknowledged,
+    /// From Unvalidated to Safe Retreat
+    /// If a sender determines that it is not valid to use the previous CC
+    /// parameters due to a detected path change (e.g., a change in RTT or
+    /// an explicit signal indicating a path change)
+    PathChanged,
     /// From Unvalidated/Validating to Safe Retreat
     /// If a sender determines that congestion was experienced, e.g., packet
     /// loss, the sender enters the Safe Retreat Phase.
+    /// From Reconnaissance to Normal
+    /// If the sender determines congestion was experienced in the Recon Phase,
+    /// the sender enters the Normal Phase
     PacketLoss,
     /// From Unvalidated/Validating to Safe Retreat
     /// If a sender determines that congestion was experienced, e.g., ECN-CE
     /// marking, sender enters the Safe Retreat Phase.
+    /// From Reconnaissance to Normal
+    /// If the sender determines congestion was experienced in the Recon Phase,
+    /// the sender enters the Normal Phase
     #[serde(rename = "ECN_CE")]
     EcnCe,
     /// From Safe Retreat to Normal
