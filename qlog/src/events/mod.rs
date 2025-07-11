@@ -626,7 +626,7 @@ pub enum EventData {
     #[serde(rename = "recovery:marked_for_retransmit")]
     MarkedForRetransmit(quic::MarkedForRetransmit),
 
-    #[serde(rename = "recovery:careful_resume_phase_updated")]
+    #[serde(rename = "quic:careful_resume_phase_updated")]
     CarefulResumePhaseUpdated(resume::CarefulResumePhaseUpdated),
 
     // HTTP/3
